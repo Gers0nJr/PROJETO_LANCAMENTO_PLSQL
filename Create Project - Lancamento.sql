@@ -16,12 +16,28 @@
 
 -- Versao : M003
 -- Autor  : Gerson Batista
--- Data   : 27/01/2021
+-- Data   : 28/01/2021
 -- Descr. : Adicionando codigo no retorno proc
+
+-- ---------------------- -------------------------- ----------------------
+
+-- Versao : M004
+-- Autor  : Gerson Batista
+-- Data   : 27/01/2021
+-- Descr. : Adicionando deletar e validação codigo
 
 -- ---------------------- Package ------------------------------------------
 
 CREATE OR REPLACE PACKAGE PKG_LANCAMENTOS AS
+
+    TYPE rows IS TABLE OF lancamento%ROWTYPE 
+    INDEX BY PLS_INTEGER; --M004
+    
+    t_lancamento rows; --M004
+    
+    FUNCTION VALIDAR_CODIGO(
+      P_CODIGO IN LANCAMENTO.CODIGO%TYPE) 
+      return LANCAMENTO.DESCRICAO%TYPE; --M004
        
     PROCEDURE CRIAR(V_ROW IN LANCAMENTO%ROWTYPE, --M001
         V_COD_RET OUT NUMBER,  --M003
@@ -33,6 +49,23 @@ END PKG_LANCAMENTOS;
 -- ---------------------- Package Body ------------------------------------------
 
 CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
+
+	FUNCTION VALIDAR_CODIGO(
+	    P_CODIGO IN LANCAMENTO.CODIGO%TYPE) 
+	      return LANCAMENTO.DESCRICAO%TYPE is
+
+	    v_descricao LANCAMENTO.DESCRICAO%TYPE;
+
+	  begin
+	    select * BULK COLLECT into t_lancamento from lancamento l where l.codigo = P_CODIGO;
+
+	    FOR i IN 1 .. t_lancamento.COUNT
+		LOOP
+		 v_descricao := t_lancamento(i).descricao;
+		END LOOP;
+
+	     return v_descricao;
+	  end; --M004
 
 	PROCEDURE CRIAR(V_ROW IN LANCAMENTO%ROWTYPE,
         V_COD_RET OUT NUMBER,  --M003
@@ -72,11 +105,31 @@ CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
             --DBMS_OUTPUT.PUT_LINE('Erro ao inserir dados: ' || SQLERRM); 
 
       END; --M001
+      
+      PROCEDURE EXCLUIR(P_CODIGO IN LANCAMENTO.CODIGO%TYPE,
+        V_COD_RET OUT NUMBER,
+        V_RETORNO OUT VARCHAR2) IS
+        
+      BEGIN
+       
+      delete from lancamento t where t.codigo = P_CODIGO;
+
+        V_COD_RET := 200; 
+        V_RETORNO := 'Dados excluidos com sucesso.';
+        COMMIT;
+        
+        EXCEPTION
+          WHEN OTHERS THEN
+            ROLLBACK;
+               V_COD_RET := 500;
+               V_RETORNO := 'Erro ao excluir dados: ' || SQLERRM;
+
+      END; --M004
 
 END PKG_LANCAMENTOS; --M001
 
 -- ---------------------- Test ------------------------------------------
-
+-- ---------------------- CRIAR -----------------------------------------
 declare 
   V_ROW lancamento%ROWTYPE; --M001
   vData lancamento.data_vencimento%TYPE := sysdate; --M002
@@ -98,4 +151,18 @@ begin
                         v_retorno => :v_retorno); --M003
 end; --M001
 
--- ---------------------------------------------------------------------------
+-- ---------------------- VALIDAR_CODIGO -----------------------------------------
+declare
+V_CODIGO LANCAMENTO.CODIGO%TYPE := 3;
+begin
+  :result := pkg_lancamentos.validar_codigo(p_codigo => V_CODIGO);
+end; --M004
+
+-- ---------------------- EXCLUIR -----------------------------------------
+declare
+V_CODIGO LANCAMENTO.CODIGO%TYPE := 3;
+begin
+  pkg_lancamentos.excluir(p_codigo => V_CODIGO,
+                          v_cod_ret => :v_cod_ret,
+                          v_retorno => :v_retorno);
+end; --M004
