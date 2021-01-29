@@ -73,3 +73,24 @@ begin
                                             v_cod_ret => :v_cod_ret,
                                             v_retorno => :v_retorno);
 end;
+
+-- ---------------------- ATUALIZAR -----------------------------------------
+
+declare
+  V_ROW lancamento%ROWTYPE;
+  V_CODIGO lancamento.codigo%type := 50;
+begin
+  V_ROW.descricao := 'Teste de atualização';
+  V_ROW.data_vencimento := sysdate;
+  V_ROW.data_pagamento := sysdate;
+  V_ROW.valor := 150.00;
+  V_ROW.observacao := 'OBS teste de atualização';
+  V_ROW.tipo := 'RECEITA';
+  V_ROW.codigo_categoria := 1;
+  V_ROW.codigo_pessoa := 1;
+  
+  pkg_lancamentos.atualizar(p_codigo => V_CODIGO,
+                            v_row => v_row,
+                            v_cod_ret => :v_cod_ret,
+                            v_retorno => :v_retorno);
+end;
