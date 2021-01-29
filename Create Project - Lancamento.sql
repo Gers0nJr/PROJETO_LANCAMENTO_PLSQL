@@ -26,46 +26,94 @@
 -- Data   : 27/01/2021
 -- Descr. : Adicionando deletar e validação codigo
 
--- ---------------------- Package ------------------------------------------
+-- ---------------------- Package V2------------------------------------------
 
 CREATE OR REPLACE PACKAGE PKG_LANCAMENTOS AS
 
+    msg_geral EXCEPTION;
+    msg_erro EXCEPTION;
+
     TYPE rows IS TABLE OF lancamento%ROWTYPE 
-    INDEX BY PLS_INTEGER; --M004
+    INDEX BY PLS_INTEGER;
     
-    t_lancamento rows; --M004
+    t_lancamento rows;
     
-    FUNCTION VALIDAR_CODIGO(
+    /*FUNCTION VALIDAR_CODIGO(
       P_CODIGO IN LANCAMENTO.CODIGO%TYPE) 
-      return LANCAMENTO.DESCRICAO%TYPE; --M004
+      return LANCAMENTO.DESCRICAO%TYPE;*/
+      
+    FUNCTION VALIDAR_CODIGO(
+      P_CODIGO IN LANCAMENTO.CODIGO%TYPE, 
+      V_COD_RET OUT NUMBER,
+      V_RETORNO OUT VARCHAR2
+      ) 
+      return LANCAMENTO.CODIGO%TYPE;
        
     PROCEDURE CRIAR(V_ROW IN LANCAMENTO%ROWTYPE, --M001
         V_COD_RET OUT NUMBER,  --M003
         V_RETORNO OUT VARCHAR2); --M003
-
+  
+    PROCEDURE EXCLUIR(P_CODIGO IN LANCAMENTO.CODIGO%TYPE,
+        V_COD_RET OUT NUMBER,
+        V_RETORNO OUT VARCHAR2);
+    
 END PKG_LANCAMENTOS;
 
-
--- ---------------------- Package Body ------------------------------------------
+-- ---------------------- Package Body V2------------------------------------------
 
 CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
 
-	FUNCTION VALIDAR_CODIGO(
-	    P_CODIGO IN LANCAMENTO.CODIGO%TYPE) 
-	      return LANCAMENTO.DESCRICAO%TYPE is
-
-	    v_descricao LANCAMENTO.DESCRICAO%TYPE;
-
-	  begin
-	    select * BULK COLLECT into t_lancamento from lancamento l where l.codigo = P_CODIGO;
-
-	    FOR i IN 1 .. t_lancamento.COUNT
-		LOOP
-		 v_descricao := t_lancamento(i).descricao;
-		END LOOP;
-
-	     return v_descricao;
-	  end; --M004
+  /*FUNCTION VALIDAR_CODIGO(
+    P_CODIGO IN LANCAMENTO.CODIGO%TYPE) 
+      return LANCAMENTO.DESCRICAO%TYPE is
+    
+    v_descricao LANCAMENTO.DESCRICAO%TYPE;
+    
+  begin
+    select * BULK COLLECT into t_lancamento from lancamento l where l.codigo = P_CODIGO;
+    FOR i IN 1 .. t_lancamento.COUNT
+        LOOP
+         v_descricao := t_lancamento(i).descricao;
+        END LOOP;
+     return v_descricao;
+  end;*/
+  
+  FUNCTION VALIDAR_CODIGO(
+      P_CODIGO IN LANCAMENTO.CODIGO%TYPE, 
+      V_COD_RET OUT NUMBER,
+      V_RETORNO OUT VARCHAR2
+      ) 
+      return LANCAMENTO.CODIGO%TYPE IS
+      
+      V_CODIGO LANCAMENTO.CODIGO%TYPE := 0;
+      
+  begin
+    
+    select * BULK COLLECT into t_lancamento from lancamento l where l.codigo = P_CODIGO;
+    
+    FOR i IN 1 .. t_lancamento.COUNT  
+    LOOP
+        V_CODIGO := t_lancamento(i).codigo;
+    END LOOP; 
+    
+    if t_lancamento.COUNT > 0 then
+      RAISE msg_geral;   
+    else
+      RAISE msg_erro;
+    end if;
+    
+    return V_CODIGO;
+    
+     EXCEPTION
+        WHEN msg_geral THEN
+            V_COD_RET := 200;
+            V_RETORNO := 'COD: ' || P_CODIGO || ' encontrado.';
+            return V_CODIGO;
+        WHEN msg_erro THEN
+            V_COD_RET := 500;
+            V_RETORNO := 'COD: ' || P_CODIGO || ' não encontrado: ' || SQLERRM;  
+            return V_CODIGO;      
+  end;
 
 	PROCEDURE CRIAR(V_ROW IN LANCAMENTO%ROWTYPE,
         V_COD_RET OUT NUMBER,  --M003
@@ -92,7 +140,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
                                         V_ROW.codigo_categoria,
                                         V_ROW.codigo_pessoa); --M001
 
-        V_COD_RET := 200; --M003
+        V_COD_RET := 201; --M003
         V_RETORNO := 'Dados inseridos com sucesso.'; --M003
 	    --DBMS_OUTPUT.PUT_LINE('Dados inseridos com sucesso.'); --M003
         COMMIT;
@@ -100,7 +148,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
         EXCEPTION --M002
           WHEN OTHERS THEN --M002
             ROLLBACK; --M002
-                V_COD_RET := 500; --M003
+               V_COD_RET := 500; --M003
                V_RETORNO := 'Erro ao inserir dados: ' || SQLERRM; --M003
             --DBMS_OUTPUT.PUT_LINE('Erro ao inserir dados: ' || SQLERRM); 
 
@@ -112,8 +160,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
         
       BEGIN
        
-      delete from lancamento t where t.codigo = P_CODIGO;
-
+       delete from lancamento t where t.codigo = P_CODIGO;
         V_COD_RET := 200; 
         V_RETORNO := 'Dados excluidos com sucesso.';
         COMMIT;
@@ -123,7 +170,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
             ROLLBACK;
                V_COD_RET := 500;
                V_RETORNO := 'Erro ao excluir dados: ' || SQLERRM;
-
-      END; --M004
-
+      END;
+ 
 END PKG_LANCAMENTOS; --M001
+
