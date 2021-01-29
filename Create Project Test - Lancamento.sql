@@ -63,3 +63,13 @@ begin
                           v_cod_ret => :v_cod_ret,
                           v_retorno => :v_retorno);
 end; --M004
+
+-- ---------------------- VALIDAR_CODIGO V2 -----------------------------------------
+declare
+V_CODIGO LANCAMENTO.CODIGO%TYPE := 40;
+begin
+  -- Call the function
+  :result := pkg_lancamentos.validar_codigo(p_codigo => V_CODIGO,
+                                            v_cod_ret => :v_cod_ret,
+                                            v_retorno => :v_retorno);
+end;
