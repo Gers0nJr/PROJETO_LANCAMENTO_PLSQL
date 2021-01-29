@@ -26,7 +26,7 @@
 -- Data   : 27/01/2021
 -- Descr. : Adicionando deletar e validação codigo
 
--- ---------------------- Package V3------------------------------------------
+-- ---------------------- Package V4------------------------------------------
 
 CREATE OR REPLACE PACKAGE PKG_LANCAMENTOS AS
 
@@ -61,10 +61,15 @@ CREATE OR REPLACE PACKAGE PKG_LANCAMENTOS AS
     PROCEDURE EXCLUIR(P_CODIGO IN LANCAMENTO.CODIGO%TYPE,
         V_COD_RET OUT NUMBER,
         V_RETORNO OUT VARCHAR2);
+        
+     PROCEDURE ATUALIZAR(P_CODIGO IN LANCAMENTO.CODIGO%TYPE,
+        V_ROW IN LANCAMENTO%ROWTYPE,
+        V_COD_RET OUT NUMBER,
+        V_RETORNO OUT VARCHAR2);
     
 END PKG_LANCAMENTOS;
 
--- ---------------------- Package Body V3------------------------------------------
+-- ---------------------- Package Body V4------------------------------------------
 
 CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
 
@@ -201,7 +206,38 @@ CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
                    V_RETORNO := 'Erro ao excluir dados: ' || SQLERRM;*/
          
       END;
+      
+      PROCEDURE ATUALIZAR(P_CODIGO IN LANCAMENTO.CODIGO%TYPE,
+        V_ROW IN LANCAMENTO%ROWTYPE,
+        V_COD_RET OUT NUMBER,
+        V_RETORNO OUT VARCHAR2) is
+        
+        BEGIN
+          
+          if pkg_lancamentos.validar_codigo(P_CODIGO) then        
+         update lancamento set  descricao = V_ROW.descricao,
+                                data_vencimento = V_ROW.data_vencimento,
+                                data_pagamento =  V_ROW.data_pagamento,
+                                valor = V_ROW.valor,
+                                observacao = V_ROW.observacao,
+                                tipo = V_ROW.tipo,
+                                codigo_categoria = V_ROW.codigo_categoria,
+                                codigo_pessoa = V_ROW.codigo_pessoa
+                                where codigo = P_CODIGO;
+            V_COD_RET := 200; 
+            V_RETORNO := 'Dados atualizados com sucesso.';
+            COMMIT;
+            
+         else
+            raise msg_erro;        
+         end if;
+         
+         EXCEPTION
+          WHEN msg_erro THEN
+              ROLLBACK;
+              V_COD_RET := 500;
+              V_RETORNO := 'Erro ao editar dados, codigo: ' || P_CODIGO || ' não encontrado: ' || SQLERRM;
+              
+        END;
  
 END PKG_LANCAMENTOS; --M001
-
-
