@@ -26,7 +26,7 @@
 -- Data   : 27/01/2021
 -- Descr. : Adicionando deletar e validação codigo
 
--- ---------------------- Package V2------------------------------------------
+-- ---------------------- Package V3------------------------------------------
 
 CREATE OR REPLACE PACKAGE PKG_LANCAMENTOS AS
 
@@ -42,12 +42,17 @@ CREATE OR REPLACE PACKAGE PKG_LANCAMENTOS AS
       P_CODIGO IN LANCAMENTO.CODIGO%TYPE) 
       return LANCAMENTO.DESCRICAO%TYPE;*/
       
-    FUNCTION VALIDAR_CODIGO(
+    /*FUNCTION VALIDAR_CODIGO(
       P_CODIGO IN LANCAMENTO.CODIGO%TYPE, 
       V_COD_RET OUT NUMBER,
       V_RETORNO OUT VARCHAR2
       ) 
-      return LANCAMENTO.CODIGO%TYPE;
+      return LANCAMENTO.CODIGO%TYPE;*/
+      
+      FUNCTION VALIDAR_CODIGO(
+      P_CODIGO IN LANCAMENTO.CODIGO%TYPE
+      ) 
+      return BOOLEAN;
        
     PROCEDURE CRIAR(V_ROW IN LANCAMENTO%ROWTYPE, --M001
         V_COD_RET OUT NUMBER,  --M003
@@ -59,7 +64,7 @@ CREATE OR REPLACE PACKAGE PKG_LANCAMENTOS AS
     
 END PKG_LANCAMENTOS;
 
--- ---------------------- Package Body V2------------------------------------------
+-- ---------------------- Package Body V3------------------------------------------
 
 CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
 
@@ -78,7 +83,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
      return v_descricao;
   end;*/
   
-  FUNCTION VALIDAR_CODIGO(
+  /*FUNCTION VALIDAR_CODIGO(
       P_CODIGO IN LANCAMENTO.CODIGO%TYPE, 
       V_COD_RET OUT NUMBER,
       V_RETORNO OUT VARCHAR2
@@ -113,7 +118,20 @@ CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
             V_COD_RET := 500;
             V_RETORNO := 'COD: ' || P_CODIGO || ' não encontrado: ' || SQLERRM;  
             return V_CODIGO;      
-  end;
+  end;*/
+  
+  FUNCTION VALIDAR_CODIGO(
+      P_CODIGO IN LANCAMENTO.CODIGO%TYPE
+      ) 
+      return BOOLEAN IS 
+  BEGIN
+    select * BULK COLLECT into t_lancamento from lancamento l where l.codigo = P_CODIGO;
+    if t_lancamento.COUNT > 0 then
+      return true;   
+    else
+      return false;
+    end if;
+  END;
 
 	PROCEDURE CRIAR(V_ROW IN LANCAMENTO%ROWTYPE,
         V_COD_RET OUT NUMBER,  --M003
@@ -157,20 +175,33 @@ CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
       PROCEDURE EXCLUIR(P_CODIGO IN LANCAMENTO.CODIGO%TYPE,
         V_COD_RET OUT NUMBER,
         V_RETORNO OUT VARCHAR2) IS
-        
+
       BEGIN
-       
-       delete from lancamento t where t.codigo = P_CODIGO;
-        V_COD_RET := 200; 
-        V_RETORNO := 'Dados excluidos com sucesso.';
-        COMMIT;
         
-        EXCEPTION
-          WHEN OTHERS THEN
-            ROLLBACK;
-               V_COD_RET := 500;
-               V_RETORNO := 'Erro ao excluir dados: ' || SQLERRM;
+         if pkg_lancamentos.validar_codigo(P_CODIGO) then        
+           delete from lancamento t where t.codigo = P_CODIGO;
+            V_COD_RET := 200; 
+            V_RETORNO := 'Dados excluidos com sucesso.';
+            COMMIT;
+            
+         else
+            raise msg_erro;        
+         end if;
+         
+         EXCEPTION
+          WHEN msg_erro THEN
+              ROLLBACK;
+              V_COD_RET := 500;
+              V_RETORNO := 'Erro ao excluir dados, codigo: ' || P_CODIGO || ' não existe: ' || SQLERRM;
+         
+         /*EXCEPTION
+              WHEN OTHERS THEN
+                ROLLBACK;
+                   V_COD_RET := 500;
+                   V_RETORNO := 'Erro ao excluir dados: ' || SQLERRM;*/
+         
       END;
  
 END PKG_LANCAMENTOS; --M001
+
 
