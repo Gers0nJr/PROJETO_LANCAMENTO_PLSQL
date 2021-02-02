@@ -94,3 +94,12 @@ begin
                             v_cod_ret => :v_cod_ret,
                             v_retorno => :v_retorno);
 end;
+-- ---------------------- buscar_por_codigo -----------------------------------------
+declare
+  V_CODIGO lancamento.codigo%type := 5;
+begin
+  pkg_lancamentos.buscar_por_codigo(p_codigo => V_CODIGO,
+                                    listalancamento => :listalancamento,
+                                    p_cod_ret => :p_cod_ret,
+                                    p_retorno => :p_retorno);
+end;
