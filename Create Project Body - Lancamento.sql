@@ -170,22 +170,22 @@ CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
         
         BEGIN
           
-          if pkg_lancamentos.validar_codigo(P_CODIGO) then        
-         update lancamento set  descricao = V_ROW.descricao,
-                                data_vencimento = V_ROW.data_vencimento,
-                                data_pagamento =  V_ROW.data_pagamento,
-                                valor = V_ROW.valor,
-                                observacao = V_ROW.observacao,
-                                tipo = V_ROW.tipo,
-                                codigo_categoria = V_ROW.codigo_categoria,
-                                codigo_pessoa = V_ROW.codigo_pessoa
-                                where codigo = P_CODIGO;
-            V_COD_RET := 200; 
-            V_RETORNO := 'Dados atualizados com sucesso.';
-            COMMIT;
-            
-         else
-            raise msg_erro;        
+         if pkg_lancamentos.validar_codigo(P_CODIGO) then        
+           update lancamento set  descricao = V_ROW.descricao,
+                                  data_vencimento = V_ROW.data_vencimento,
+                                  data_pagamento =  V_ROW.data_pagamento,
+                                  valor = V_ROW.valor,
+                                  observacao = V_ROW.observacao,
+                                  tipo = V_ROW.tipo,
+                                  codigo_categoria = V_ROW.codigo_categoria,
+                                  codigo_pessoa = V_ROW.codigo_pessoa
+                                  where codigo = P_CODIGO;
+              V_COD_RET := 200; 
+              V_RETORNO := 'Dados atualizados com sucesso.';
+              COMMIT;
+              
+           else
+              raise msg_erro;        
          end if;
          
          EXCEPTION
@@ -194,6 +194,64 @@ CREATE OR REPLACE PACKAGE BODY PKG_LANCAMENTOS AS
               V_COD_RET := 500;
               V_RETORNO := 'Erro ao editar dados, codigo: ' || P_CODIGO || ' não encontrado: ' || SQLERRM;
               
+        END;
+        
+       PROCEDURE BUSCAR_POR_CODIGO(P_CODIGO IN LANCAMENTO.CODIGO%TYPE,
+        listaLancamento out clob,
+        P_COD_RET OUT NUMBER,
+        P_RETORNO OUT VARCHAR2) is 
+        
+        lancamento_rec lancamento%rowtype;
+        lancamentoObj json := json();
+        
+        BEGIN
+          select * into lancamento_rec 
+          from lancamento l 
+          where l.codigo = P_CODIGO;
+         
+          if (lancamento_rec.codigo is not null) then
+            lancamentoObj.put('codigo', lancamento_rec.codigo);
+          end if;
+          
+          if (lancamento_rec.descricao is not null) then
+            lancamentoObj.put('descricao', lancamento_rec.descricao);
+          end if;
+          
+          if (lancamento_rec.data_vencimento is not null) then
+            lancamentoObj.put('data_vencimento', lancamento_rec.data_vencimento);
+          end if;
+          
+          if (lancamento_rec.data_pagamento is not null) then
+            lancamentoObj.put('data_pagamento', lancamento_rec.data_pagamento);
+          end if;
+          
+          if (lancamento_rec.valor is not null) then
+            lancamentoObj.put('valor', lancamento_rec.valor);
+          end if;
+          
+          if (lancamento_rec.observacao is not null) then
+            lancamentoObj.put('observacao', lancamento_rec.observacao);
+          end if;
+          
+          if (lancamento_rec.tipo is not null) then
+            lancamentoObj.put('tipo', lancamento_rec.tipo);
+          end if;
+          
+          if (lancamento_rec.codigo_categoria is not null) then
+            lancamentoObj.put('codigo_categoria', lancamento_rec.codigo_categoria);
+          end if;
+          
+          if (lancamento_rec.codigo_pessoa is not null) then
+            lancamentoObj.put('codigo_pessoa', lancamento_rec.codigo_pessoa);
+          end if;
+          
+          dbms_lob.createtemporary(listaLancamento, true);
+          lancamentoObj.to_clob(listaLancamento);
+       
+          EXCEPTION
+            WHEN msg_erro THEN
+                P_COD_RET := 500;
+                P_RETORNO := 'Erro ao editar dados, codigo: ' || P_CODIGO || ' não encontrado: ' || SQLERRM;
         END;
  
 END PKG_LANCAMENTOS; --M001
