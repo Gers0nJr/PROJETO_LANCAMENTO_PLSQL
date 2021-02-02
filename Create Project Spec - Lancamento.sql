@@ -26,7 +26,7 @@
 -- Data   : 27/01/2021
 -- Descr. : Adicionando deletar e validação codigo
 
--- ---------------------- Package V4------------------------------------------
+-- ---------------------- Package V5------------------------------------------
 
 CREATE OR REPLACE PACKAGE PKG_LANCAMENTOS AS
 
@@ -66,5 +66,10 @@ CREATE OR REPLACE PACKAGE PKG_LANCAMENTOS AS
         V_ROW IN LANCAMENTO%ROWTYPE,
         V_COD_RET OUT NUMBER,
         V_RETORNO OUT VARCHAR2);
+        
+     PROCEDURE BUSCAR_POR_CODIGO(P_CODIGO IN LANCAMENTO.CODIGO%TYPE,
+        listaLancamento out clob,
+        P_COD_RET OUT NUMBER,
+        P_RETORNO OUT VARCHAR2);
     
 END PKG_LANCAMENTOS;
